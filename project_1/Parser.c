@@ -29,6 +29,7 @@ void loadInstructions(Instruction_Memory *i_mem, const char *trace)
         // Extract operation
         char *raw_instr = strtok(line, " ");
 
+        //R-types
         if (strcmp(raw_instr, "add") == 0 ||
             strcmp(raw_instr, "sub") == 0 ||
             strcmp(raw_instr, "sll") == 0 ||
@@ -40,6 +41,7 @@ void loadInstructions(Instruction_Memory *i_mem, const char *trace)
             parseRType(raw_instr, &(i_mem->instructions[IMEM_index]));
             i_mem->last = &(i_mem->instructions[IMEM_index]);
 	    }
+        //I-types
         else if (strcmp(raw_instr, "lb") == 0 ||
             strcmp(raw_instr, "lh") == 0 ||
             strcmp(raw_instr, "ld") == 0 ||
@@ -51,6 +53,7 @@ void loadInstructions(Instruction_Memory *i_mem, const char *trace)
             parseIType(raw_instr, &(i_mem->instructions[IMEM_index]));
             i_mem->last = &(i_mem->instructions[IMEM_index]);
 	    } 
+        //SB-types
         else if (strcmp(raw_instr, "beq") == 0 ||
             strcmp(raw_instr, "bne") == 0 ||
             strcmp(raw_instr, "blt") == 0 ||
