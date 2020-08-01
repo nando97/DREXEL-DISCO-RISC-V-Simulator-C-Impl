@@ -7,13 +7,57 @@ Core *initCore(Instruction_Memory *i_mem){
     core->instr_mem = i_mem;
     core->tick = tickFunc;
 
-    // FIXME, initialize register file here.
-    // core->data_mem[0] = ...
-
     // FIXME, initialize data memory here.
-    // core->reg_file[0] = ...
+    // array is uint64_t arr[] = {16, 128, 8, 4}
+    // so, each element requires 8 bytes
 
-    return core;
+    // arr[0] = 16
+    core->data_mem[0] = 16; 
+    core->data_mem[1] = 0; 
+    core->data_mem[2] = 0; 
+    core->data_mem[3] = 0; 
+    core->data_mem[4] = 0; 
+    core->data_mem[5] = 0; 
+    core->data_mem[6] = 0; 
+    core->data_mem[7] = 0; 
+
+    // arr[1] = 128
+    core->data_mem[8] = 128; 
+    core->data_mem[9] = 0;
+    core->data_mem[10] = 0; 
+    core->data_mem[11] = 0; 
+    core->data_mem[12] = 0; 
+    core->data_mem[13] = 0; 
+    core->data_mem[14] = 0; 
+    core->data_mem[15] = 0; 
+
+    // arr[2] = 8
+    core->data_mem[16] = 8;
+    core->data_mem[17] = 0; 
+    core->data_mem[18] = 0; 
+    core->data_mem[19] = 0; 
+    core->data_mem[20] = 0; 
+    core->data_mem[21] = 0; 
+    core->data_mem[22] = 0; 
+    core->data_mem[23] = 0; 
+
+    // arr[3] = 4 
+    core->data_mem[24] = 4;
+    core->data_mem[25] = 0; 
+    core->data_mem[26] = 0; 
+    core->data_mem[27] = 0; 
+    core->data_mem[28] = 0; 
+    core->data_mem[29] = 0; 
+    core->data_mem[30] = 0; 
+    core->data_mem[31] = 0;
+
+    // FIXME, initialize reg file here.
+    // initialize x25 = 4, x22 = 1, x10 = 4;
+    core->reg_file[0] = 0; // hard-wire x0 to zero
+    core->reg_file[10] = 4;
+    core->reg_file[22] = 1;
+    core->reg_file[25] = 4;
+   return core;
 }
 
 // FIXME, implement this function

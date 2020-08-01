@@ -46,13 +46,10 @@ typedef struct ControlSignals
     Signal ALUSrc;
     Signal RegWrite;
 }ControlSignals;
-void ControlUnit(Signal input,
-                 ControlSignals *signals);
+void ControlUnit(Signal input, ControlSignals *signals);
 
 // FIXME (2). ALU Control Unit.
-Signal ALUControlUnit(Signal ALUOp,
-                      Signal Funct7,
-                      Signal Funct3);
+Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3);
 
 // FIXME (3). Imme. Generator
 Signal ImmeGen(Signal input);
