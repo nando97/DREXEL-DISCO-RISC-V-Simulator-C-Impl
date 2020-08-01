@@ -1,7 +1,6 @@
 #include "Core.h"
 
-Core *initCore(Instruction_Memory *i_mem)
-{
+Core *initCore(Instruction_Memory *i_mem){
     Core *core = (Core *)malloc(sizeof(Core));
     core->clk = 0;
     core->PC = 0;
@@ -18,8 +17,7 @@ Core *initCore(Instruction_Memory *i_mem)
 }
 
 // FIXME, implement this function
-bool tickFunc(Core *core)
-{
+bool tickFunc(Core *core){
     // Steps may include
     // (Step 1) Reading instruction from instruction memory
     unsigned instruction = core->instr_mem->instructions[core->PC / 4].instruction;
