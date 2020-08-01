@@ -90,19 +90,56 @@ void ControlUnit(Signal input, ControlSignals *signals){
         signals->Branch = 0;
         signals->ALUOp = 2;
     }
+    // For SB-type
+    else if (input == 99){
+        signals->ALUSrc = 0;
+        signals->MemtoReg = 0; // dont-care
+        signals->RegWrite = 0;
+        signals->MemRead = 0;
+        signals->MemWrite = 0;
+        signals->Branch = 1;
+        signals->ALUOp = 1;
+    }
+    // For I-type
+    else if (input == 3){
+        signals->ALUSrc = 1;
+        signals->MemtoReg = 1; 
+        signals->RegWrite = 1;
+        signals->MemRead = 1;
+        signals->MemWrite = 0;
+        signals->Branch = 0;
+        signals->ALUOp = 0;
+    }
 }
 
 // FIXME (2). ALU Control Unit. Refer to Figure 4.12.
 Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3){
     // For add
-    if (ALUOp == 2 && Funct7 == 0 && Funct3 == 0){
+    if (ALUOp == 2 && Funct7 == 0 && Funct3 == 0)
         return 2;
-    }
+    // branching
+    else if (ALUOp == 1)
+        return 6;
+    // mem op
+    else if (ALUOp == 0)
+        return 2;
 }
 
 // FIXME (3). Imme. Generator
 Signal ImmeGen(Signal input){
+    // assuming input is the instruction in 64-bit form
+    Signal imm;
+    Signal mask = 0b1100000; // imm. gen only depends on opcode bits 5 and 6
 
+    switch (input & mask){
+        case 0: // load has bits 6 and 5 set to zero
+            imm = (input & 0XFFF00000) >> 12;
+            break;
+        case 96: // branches have bits 6 and 5 set to one
+            imm = ((input & 0XFE000000) >> 20) | ((input & 0X00000F80) >> 7); 
+            break;
+    }
+    return imm;
 }
 
 // FIXME (4). ALU
