@@ -92,16 +92,17 @@ bool tickFunc(Core *core){
     Signal ALU_result, zero;
     ALU(reg1, ALU_operand1, ALU_ctrl_signal, &ALU_result, &zero);
 
-    // (Step 8) get data from data memory 
+    // (Step 8) get data from data memory
     Signal mem_data = '\0';
     if (control_signals.MemRead == 1)
-        mem_data = (core.data_mem[ALU_result+7] |
-                    core.data_mem[ALU_result+6] |
-                    core.data_mem[ALU_result+5] |
-                    core.data_mem[ALU_result+4] |
-                    core.data_mem[ALU_result+3] |
-                    core.data_mem[ALU_result+2] |
-                    core.data_mem[ALU_result] |
+        mem_data = ((core.data_mem[ALU_result+7] << 56) |
+                    (core.data_mem[ALU_result+6] << 48) |
+                    (core.data_mem[ALU_result+5] << 40) |
+                    (core.data_mem[ALU_result+4] << 32) |
+                    (core.data_mem[ALU_result+3] << 24) |
+                    (core.data_mem[ALU_result+2] << 16) |
+                    (core.data_mem[ALU_result+1] << 8) |
+                    core.data_mem[ALU_result]
         );
 
     // (Step N) Increment PC. FIXME, is it correct to always increment PC by 4?!
