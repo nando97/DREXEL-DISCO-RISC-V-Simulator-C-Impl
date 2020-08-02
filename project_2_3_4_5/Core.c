@@ -71,10 +71,10 @@ bool tickFunc(Core *core){
     ControlUnit((Signal) instruction, &control_signals);
     
     // (Step 3) Get values from reg1 and reg2
-    int reg1_idx = (instruction & 0X1F00000);
+    int reg1_idx = (instruction & 0X1F00000) >> 20;
     Signal reg1 = core->reg_file[reg1_idx];
 
-    int reg2_idx = (instruction & 0XF8000);
+    int reg2_idx = (instruction & 0XF8000) >> 15;
     Signal reg2 = core->reg_file[reg2_idx];
 
     // (Step 4) Generate Immediate
