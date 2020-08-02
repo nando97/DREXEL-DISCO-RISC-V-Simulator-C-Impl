@@ -67,8 +67,9 @@ bool tickFunc(Core *core){
     unsigned instruction = core->instr_mem->instructions[core->PC / 4].instruction;
 
     // (Step 2) Setting control bits
+    Signal opcode = (instruction & 0X7F);
     ControlSignals control_signals;
-    ControlUnit((Signal) instruction, &control_signals);
+    ControlUnit((opcode, &control_signals);
     
     // (Step 3) Get values from reg1 and reg2
     int reg1_idx = (instruction & 0X1F00000) >> 20;
