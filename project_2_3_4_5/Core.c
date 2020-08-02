@@ -72,11 +72,11 @@ bool tickFunc(Core *core){
     ControlUnit(opcode, &control_signals);
     
     // (Step 3) Get values from reg1 and reg2
-    int reg1_idx = (instruction & 0X1F00000) >> 20;
-    Signal reg1 = core->reg_file[reg1_idx];
-
-    int reg2_idx = (instruction & 0XF8000) >> 15;
+    int reg2_idx = (instruction & 0X1F00000) >> 20;
     Signal reg2 = core->reg_file[reg2_idx];
+
+    int reg1_idx = (instruction & 0XF8000) >> 15;
+    Signal reg1 = core->reg_file[reg1_idx];
 
     // (Step 4) Generate Immediate
     Signal immediate = ImmeGen((Signal) instruction);
@@ -108,7 +108,7 @@ bool tickFunc(Core *core){
     // (Step 9) Write Data to register
     Signal reg_write = MUX(control_signals.MemtoReg, ALU_result, mem_data);
     
-    int reg4_idx = (instruction & 0X3E0) >> 5;
+    int reg4_idx = (instruction & 0XF80) >> 7;
     if (control_signals.RegWrite == 1)
         core->reg_file[reg4_idx] = reg_write;
 

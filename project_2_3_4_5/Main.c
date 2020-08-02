@@ -29,7 +29,8 @@ int main(int argc, const char *argv[])
     printf("\nValue of Register 9: %lu", core->reg_file[9]);
     printf("\nValue of Register 11: %lu", core->reg_file[11]);
     printf("\nValue of Register 10: %lu", core->reg_file[10]);
-    printf("Simulation is finished.\n");
+    printf("\nValue of Register 22: %lu", core->reg_file[22]);
+    printf("\nSimulation is finished.\n");
 
     free(core);    
 }
