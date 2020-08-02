@@ -7,7 +7,7 @@ Core *initCore(Instruction_Memory *i_mem){
     core->instr_mem = i_mem;
     core->tick = tickFunc;
 
-    // FIXME, initialize data memory here.
+    // fixed? initialize data memory here.
     // array is uint64_t arr[] = {16, 128, 8, 4}
     // so, each element requires 8 bytes
 
@@ -60,14 +60,38 @@ Core *initCore(Instruction_Memory *i_mem){
    return core;
 }
 
-// FIXME, implement this function
+// in progress, implement this function
 bool tickFunc(Core *core){
     // Steps may include
     // (Step 1) Reading instruction from instruction memory
     unsigned instruction = core->instr_mem->instructions[core->PC / 4].instruction;
+
+    // (Step 2) Setting control bits
+    ControlSignals control_signals;
+    ControlUnit((Signal) instruction, &control_signals);
     
-    // (Step 2) ...
-    
+    // (Step 3) Get values from reg1 and reg2
+    int reg1_idx = (instruction & 0X1F00000);
+    Signal reg1 = core->reg_file[reg1_idx];
+
+    int reg2_idx = (instruction & 0XF8000);
+    Signal reg2 = core->reg_file[reg2_idx];
+
+    // (Step 4) Generate Immediate
+    Signal immediate = ImmeGen((Signal) instruction);
+
+    // (Step 5) Use mux to choose between reg2 or immediate for input to ALU    
+    Signal ALU_operand1 = MUX(control_signals->ALUSrc, reg2, immediate);
+
+    // (Step 6) Setting ALU Control Unit bits
+    Signal Funct7 = (instruction & 0XFE000000) >> 25;
+    Signal Funct3 = (instruction & 0X7000) >> 12;
+    Signal ALU_ctrl_signal = ALUControlUnit(control_signals->ALUOp, Funct7, Funct3);
+
+    // (Step 7) Get result from ALU
+    Signal ALU_result, zero;
+    ALU(reg1, ALU_operand1, ALU_ctrl_signal, &ALU_result, &zero);
+
     // (Step N) Increment PC. FIXME, is it correct to always increment PC by 4?!
     core->PC += 4;
 
@@ -78,7 +102,7 @@ bool tickFunc(Core *core){
     return true;
 }
 
-// FIXME (1). Control Unit. Refer to Figure 4.18.
+// fixed? (1). Control Unit. Refer to Figure 4.18.
 void ControlUnit(Signal input, ControlSignals *signals){
     // For R-type
     if (input == 51) {
@@ -112,20 +136,22 @@ void ControlUnit(Signal input, ControlSignals *signals){
     }
 }
 
-// FIXME (2). ALU Control Unit. Refer to Figure 4.12.
+// fixed? (2). ALU Control Unit. Refer to Figure 4.12.
 Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3){
     // For add
     if (ALUOp == 2 && Funct7 == 0 && Funct3 == 0)
         return 2;
-    // branching
-    else if (ALUOp == 1)
-        return 6;
-    // mem op
+    
+    // for ld
     else if (ALUOp == 0)
         return 2;
+    
+    // for bne
+    else if (ALUOp == 1)
+        return 6;
 }
 
-// FIXME (3). Imme. Generator
+// fixed? (3). Imme. Generator
 Signal ImmeGen(Signal input){
     // assuming input is the instruction in 64-bit form
     Signal imm;
@@ -142,7 +168,7 @@ Signal ImmeGen(Signal input){
     return imm;
 }
 
-// FIXME (4). ALU
+// fixed? (4). ALU
 void ALU(Signal input_0, Signal input_1, Signal ALU_ctrl_signal,
          Signal *ALU_result, Signal *zero){
 
@@ -153,6 +179,15 @@ void ALU(Signal input_0, Signal input_1, Signal ALU_ctrl_signal,
             *zero = 1;
         else
             *zero = 0; 
+    }
+
+    // For subtraction
+    if (ALU_ctrl_signal == 6){
+        *ALU_result = (input_0 - input_1);
+        if (*ALU_result == 0)
+            *zero = 1;
+        else
+            *zero = 0;
     }
 }
 
