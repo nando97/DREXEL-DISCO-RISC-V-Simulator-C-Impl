@@ -70,7 +70,7 @@ bool tickFunc(Core *core){
     Signal opcode = (instruction & 0X7F);
     ControlSignals control_signals;
     ControlUnit(opcode, &control_signals);
-    
+
     // (Step 3) Get values from reg1 and reg2
     int reg2_idx = (instruction & 0X1F00000) >> 20;
     Signal reg2 = core->reg_file[reg2_idx];
@@ -107,7 +107,7 @@ bool tickFunc(Core *core){
 
     // (Step 9) Write Data to register
     Signal reg_write = MUX(control_signals.MemtoReg, ALU_result, mem_data);
-    
+
     int reg4_idx = (instruction & 0XF80) >> 7;
     if (control_signals.RegWrite == 1)
         core->reg_file[reg4_idx] = reg_write;
@@ -115,7 +115,7 @@ bool tickFunc(Core *core){
     // (Step N) Increment PC. FIXME, is it correct to always increment PC by 4?!
     Signal pc_immediate = ShiftLeft1(immediate);
     if (control_signals.Branch && zero)
-        core->PC += pc_immediate;
+        core->PC += (long int)pc_immediate;
     else
         core->PC += 4;
 
@@ -149,11 +149,17 @@ void ControlUnit(Signal input, ControlSignals *signals){
         signals->ALUOp = 1;
     }
     // For I-type
-    else if (input == 3){
+    else if (input == 3 || input == 19){
         signals->ALUSrc = 1;
-        signals->MemtoReg = 1; 
         signals->RegWrite = 1;
-        signals->MemRead = 1;
+        if (input == 19){
+            signals->MemtoReg = 0; 
+            signals->MemRead = 0;
+        }
+        else {
+            signals->MemtoReg = 1;  
+            signals->MemRead = 1; 
+        }
         signals->MemWrite = 0;
         signals->Branch = 0;
         signals->ALUOp = 0;
@@ -165,11 +171,12 @@ Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3){
     // For add
     if (ALUOp == 2 && Funct7 == 0 && Funct3 == 0)
         return 2;
-    
-    // for ld
+    // for slli
+    else if (ALUOp == 0 && Funct3 == 1)
+        return 4;
+    // for ld and addi
     else if (ALUOp == 0)
         return 2;
-    
     // for bne
     else if (ALUOp == 1)
         return 6;
@@ -179,11 +186,11 @@ Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3){
 Signal ImmeGen(Signal input){
     // assuming input is the instruction in 64-bit form
     Signal imm;
-    Signal mask = 0b1100000; // imm. gen only depends on opcode bits 5 and 6
+    Signal mask = 0b1100000;
 
     switch (input & mask){
         case 0: // load has bits 6 and 5 set to zero
-            imm = (input & 0XFFF00000) >> 12;
+            imm = (input & 0XFFF00000) >> 20;
             break;
         case 96: // branches have bits 6 and 5 set to one
             imm = ((input & 0XFE000000) >> 20) | ((input & 0X00000F80) >> 7); 
@@ -204,7 +211,11 @@ void ALU(Signal input_0, Signal input_1, Signal ALU_ctrl_signal,
         else
             *zero = 0; 
     }
-
+    // For shift left
+    if (ALU_ctrl_signal == 4) {
+        *ALU_result = input_0 << input_1;
+        *zero = 0;
+    }
     // For subtraction
     if (ALU_ctrl_signal == 6){
         *ALU_result = (input_0 - input_1);
