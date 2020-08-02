@@ -7,7 +7,6 @@ Core *initCore(Instruction_Memory *i_mem){
     core->instr_mem = i_mem;
     core->tick = tickFunc;
 
-    // fixed? initialize data memory here.
     // array is uint64_t arr[] = {16, 128, 8, 4}
     // so, each element requires 8 bytes
 
@@ -51,7 +50,6 @@ Core *initCore(Instruction_Memory *i_mem){
     core->data_mem[30] = 0; 
     core->data_mem[31] = 0;
 
-    // FIXME, initialize reg file here.
     // initialize x25 = 4, x22 = 1, x10 = 4;
     core->reg_file[0] = 0; // hard-wire x0 to zero
     core->reg_file[10] = 4;
@@ -60,9 +58,7 @@ Core *initCore(Instruction_Memory *i_mem){
    return core;
 }
 
-// in progress, implement this function
 bool tickFunc(Core *core){
-    // Steps may include
     // (Step 1) Reading instruction from instruction memory
     unsigned instruction = core->instr_mem->instructions[core->PC / 4].instruction;
 
@@ -93,7 +89,7 @@ bool tickFunc(Core *core){
     Signal ALU_result, zero;
     ALU(reg1, ALU_operand1, ALU_ctrl_signal, &ALU_result, &zero);
 
-    // (Step 8) get data from data memory
+    // (Step 8) get data from data memory (if applicable)
     Signal mem_data = '\0';
     if (control_signals.MemRead == 1)
         mem_data = (((Signal)core->data_mem[ALU_result+7] << 56) |
@@ -112,12 +108,10 @@ bool tickFunc(Core *core){
     if (control_signals.RegWrite == 1)
         core->reg_file[reg4_idx] = reg_write;
 
-    // (Step N) Increment PC. FIXME, is it correct to always increment PC by 4?!
+    // (Step 10) Increment PC 
     Signal pc_immediate = ShiftLeft1(immediate);
-    if (control_signals.Branch && zero)
-        core->PC += (long int)pc_immediate;
-    else
-        core->PC += 4;
+    pc_immediate = MUX((control_signals.Branch && zero != 1), 4, pc_immediate);
+    core->PC += pc_immediate;
 
     ++core->clk;
     // Are we reaching the final instruction?
@@ -126,7 +120,7 @@ bool tickFunc(Core *core){
     return true;
 }
 
-// fixed? (1). Control Unit. Refer to Figure 4.18.
+// (1). Control Unit. Refer to Figure 4.18.
 void ControlUnit(Signal input, ControlSignals *signals){
     // For R-type
     if (input == 51) {
@@ -139,7 +133,7 @@ void ControlUnit(Signal input, ControlSignals *signals){
         signals->ALUOp = 2;
     }
     // For SB-type
-    else if (input == 99){
+    else if (input == 103){
         signals->ALUSrc = 0;
         signals->MemtoReg = 0; // dont-care
         signals->RegWrite = 0;
@@ -152,11 +146,11 @@ void ControlUnit(Signal input, ControlSignals *signals){
     else if (input == 3 || input == 19){
         signals->ALUSrc = 1;
         signals->RegWrite = 1;
-        if (input == 19){
+        if (input == 19){ //addi, slli
             signals->MemtoReg = 0; 
             signals->MemRead = 0;
         }
-        else {
+        else { //ld
             signals->MemtoReg = 1;  
             signals->MemRead = 1; 
         }
@@ -166,7 +160,7 @@ void ControlUnit(Signal input, ControlSignals *signals){
     }
 }
 
-// fixed? (2). ALU Control Unit. Refer to Figure 4.12.
+// (2). ALU Control Unit. Refer to Figure 4.12.
 Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3){
     // For add
     if (ALUOp == 2 && Funct7 == 0 && Funct3 == 0)
@@ -182,11 +176,11 @@ Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3){
         return 6;
 }
 
-// fixed? (3). Imme. Generator
+// (3). Imme. Generator
 Signal ImmeGen(Signal input){
-    // assuming input is the instruction in 64-bit form
     Signal imm;
-    Signal mask = 0b1100000;
+    Signal mask = 0b1100000; // for the given set of instructions, only the two
+                             // MSBs matter
 
     switch (input & mask){
         case 0: // load has bits 6 and 5 set to zero
@@ -196,10 +190,12 @@ Signal ImmeGen(Signal input){
             imm = ((input & 0XFE000000) >> 20) | ((input & 0X00000F80) >> 7); 
             break;
     }
+    if ((imm >> 11) == 1)
+        imm = (imm | 0XFFFFFFFFFFFFF000);
     return imm;
 }
 
-// fixed? (4). ALU
+// (4). ALU
 void ALU(Signal input_0, Signal input_1, Signal ALU_ctrl_signal,
          Signal *ALU_result, Signal *zero){
 

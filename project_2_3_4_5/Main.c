@@ -26,10 +26,10 @@ int main(int argc, const char *argv[])
     /* Task Three - Simulation */
     while (core->tick(core));
 
-    printf("\nValue of Register 9: %lu", core->reg_file[9]);
-    printf("\nValue of Register 11: %lu", core->reg_file[11]);
-    printf("\nValue of Register 10: %lu", core->reg_file[10]);
-    printf("\nValue of Register 22: %lu", core->reg_file[22]);
+    printf("\nValue of Register x9: %lld", core->reg_file[9]);
+    printf("\nValue of Register x11: %lld", core->reg_file[11]);
+    printf("\nValue of Register x10: %lld", core->reg_file[10]);
+    printf("\nValue of Register x22: %lld", core->reg_file[22]);
     printf("\nSimulation is finished.\n");
 
     free(core);    
