@@ -190,6 +190,7 @@ Signal ImmeGen(Signal input){
             imm = ((input & 0XFE000000) >> 20) | ((input & 0X00000F80) >> 7); 
             break;
     }
+    // sign extension
     if ((imm >> 11) == 1)
         imm = (imm | 0XFFFFFFFFFFFFF000);
     return imm;
