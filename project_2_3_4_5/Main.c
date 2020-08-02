@@ -26,6 +26,8 @@ int main(int argc, const char *argv[])
     /* Task Three - Simulation */
     while (core->tick(core));
 
+    printf("\nValue of Register 9: %lu", core->reg_file[9]);
+    printf("\nValue of Register 11: %lu", core->reg_file[11]);
     printf("Simulation is finished.\n");
 
     free(core);    

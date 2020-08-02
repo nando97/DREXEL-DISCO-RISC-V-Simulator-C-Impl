@@ -81,12 +81,12 @@ bool tickFunc(Core *core){
     Signal immediate = ImmeGen((Signal) instruction);
 
     // (Step 5) Use mux to choose between reg2 or immediate for input to ALU    
-    Signal ALU_operand1 = MUX(control_signals->ALUSrc, reg2, immediate);
+    Signal ALU_operand1 = MUX(control_signals.ALUSrc, reg2, immediate);
 
     // (Step 6) Setting ALU Control Unit bits
     Signal Funct7 = (instruction & 0XFE000000) >> 25;
     Signal Funct3 = (instruction & 0X7000) >> 12;
-    Signal ALU_ctrl_signal = ALUControlUnit(control_signals->ALUOp, Funct7, Funct3);
+    Signal ALU_ctrl_signal = ALUControlUnit(control_signals.ALUOp, Funct7, Funct3);
 
     // (Step 7) Get result from ALU
     Signal ALU_result, zero;
