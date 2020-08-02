@@ -69,7 +69,7 @@ bool tickFunc(Core *core){
     // (Step 2) Setting control bits
     Signal opcode = (instruction & 0X7F);
     ControlSignals control_signals;
-    ControlUnit((opcode, &control_signals);
+    ControlUnit(opcode, &control_signals);
     
     // (Step 3) Get values from reg1 and reg2
     int reg1_idx = (instruction & 0X1F00000) >> 20;
@@ -95,20 +95,26 @@ bool tickFunc(Core *core){
 
     // (Step 8) get data from data memory
     Signal mem_data = '\0';
-    if (control_signals->MemRead == 1)
-        mem_data = (((Signal)core.data_mem[ALU_result+7] << 56) |
-                    ((Signal)core.data_mem[ALU_result+6] << 48) |
-                    ((Signal)core.data_mem[ALU_result+5] << 40) |
-                    ((Signal)core.data_mem[ALU_result+4] << 32) |
-                    ((Signal)core.data_mem[ALU_result+3] << 24) |
-                    ((Signal)core.data_mem[ALU_result+2] << 16) |
-                    ((Signal)core.data_mem[ALU_result+1] << 8) |
-                    (Signal)core.data_mem[ALU_result]
-        );
+    if (control_signals.MemRead == 1)
+        mem_data = (((Signal)core->data_mem[ALU_result+7] << 56) |
+                    ((Signal)core->data_mem[ALU_result+6] << 48) |
+                    ((Signal)core->data_mem[ALU_result+5] << 40) |
+                    ((Signal)core->data_mem[ALU_result+4] << 32) |
+                    ((Signal)core->data_mem[ALU_result+3] << 24) |
+                    ((Signal)core->data_mem[ALU_result+2] << 16) |
+                    ((Signal)core->data_mem[ALU_result+1] << 8) |
+                    (Signal)core->data_mem[ALU_result]);
+
+    // (Step 9) Write Data to register
+    Signal reg_write = MUX(control_signals.MemtoReg, ALU_result, mem_data);
+    
+    int reg4_idx = (instruction & 0X3E0) >> 5;
+    if (control_signals.RegWrite == 1)
+        core->reg_file[reg4_idx] = reg_write;
 
     // (Step N) Increment PC. FIXME, is it correct to always increment PC by 4?!
     Signal pc_immediate = ShiftLeft1(immediate);
-    if (control_signals->Branch && zero)
+    if (control_signals.Branch && zero)
         core->PC += pc_immediate;
     else
         core->PC += 4;
