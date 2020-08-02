@@ -106,7 +106,11 @@ bool tickFunc(Core *core){
         );
 
     // (Step N) Increment PC. FIXME, is it correct to always increment PC by 4?!
-    core->PC += 4;
+    Signal pc_immediate = ShiftLeft1(immediate);
+    if (control_signals->Branch && zero)
+        core->PC += pc_immediate;
+    else
+        core->PC += 4;
 
     ++core->clk;
     // Are we reaching the final instruction?
