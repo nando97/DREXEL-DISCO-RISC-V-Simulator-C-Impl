@@ -188,9 +188,12 @@ Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3){
     // for ld and addi
     else if (ALUOp == 0)
         return 2;
+    // for beq
+    else if (ALUOp == 1 && Funct3 == 0)
+            return 6;
     // for bne
-    else if (ALUOp == 1)
-        return 7;
+    else if (ALUOp == 1 && Funct3 == 1)
+            return 7;
 }
 
 // (3). Imme. Generator
@@ -230,23 +233,21 @@ void ALU(Signal input_0, Signal input_1, Signal ALU_ctrl_signal,
         *ALU_result = input_0 << input_1;
         *zero = 0;
     }
-    // For subtraction
-    if (ALU_ctrl_signal == 6 || ALU_ctrl_signal == 7){
+    // For beq 
+    if (ALU_ctrl_signal == 6){
         *ALU_result = (input_0 - input_1);
-        switch (ALU_ctrl_signal){
-            case 6: //beq
-                if (*ALU_result == 0)
-                    *zero = 1;
-                else
-                    *zero = 0;
-                break;
-            case 7: //bne
-               if (*ALU_result == 0)
-                    *zero = 0;
-                else
-                    *zero = 1; 
-                break;
-        }
+        if (*ALU_result == 0)
+            *zero = 1;
+        else
+            *zero = 0;
+    }
+    // For bne
+    if (ALU_ctrl_signal == 7){
+        *ALU_result = (input_0 - input_1);
+        if (*ALU_result == 0)
+            *zero = 0;
+        else
+            *zero = 1;
     }
 }
 
