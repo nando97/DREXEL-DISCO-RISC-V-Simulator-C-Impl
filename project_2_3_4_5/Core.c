@@ -97,7 +97,7 @@ bool tickFunc(Core *core){
 
     // (Step 10) Increment PC 
     Signal pc_immediate = ShiftLeft1(immediate);
-    pc_immediate = MUX((control_signals.Branch && zero != 1), 4, pc_immediate);
+    pc_immediate = MUX((control_signals.Branch && zero), 4, pc_immediate);
     core->PC += pc_immediate;
 
     ++core->clk;
@@ -190,7 +190,7 @@ Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3){
         return 2;
     // for bne
     else if (ALUOp == 1)
-        return 6;
+        return 7;
 }
 
 // (3). Imme. Generator
@@ -231,12 +231,22 @@ void ALU(Signal input_0, Signal input_1, Signal ALU_ctrl_signal,
         *zero = 0;
     }
     // For subtraction
-    if (ALU_ctrl_signal == 6){
+    if (ALU_ctrl_signal == 6 || ALU_ctrl_signal == 7){
         *ALU_result = (input_0 - input_1);
-        if (*ALU_result == 0)
-            *zero = 1;
-        else
-            *zero = 0;
+        switch (ALU_ctrl_signal){
+            case 6: //beq
+                if (*ALU_result == 0)
+                    *zero = 1;
+                else
+                    *zero = 0;
+                break;
+            case 7: //bne
+               if (*ALU_result == 0)
+                    *zero = 0;
+                else
+                    *zero = 1; 
+                break;
+        }
     }
 }
 
