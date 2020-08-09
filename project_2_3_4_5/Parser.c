@@ -48,7 +48,8 @@ void loadInstructions(Instruction_Memory *i_mem, const char *trace)
             strcmp(raw_instr, "lw") == 0 ||
             strcmp(raw_instr, "slli") == 0 ||
             strcmp(raw_instr, "srli")  == 0 ||
-            strcmp(raw_instr, "addi") == 0)
+            strcmp(raw_instr, "addi") == 0 ||
+            strcmp(raw_instr, "jalr") == 0 )
         {
             parseIType(raw_instr, &(i_mem->instructions[IMEM_index]));
             i_mem->last = &(i_mem->instructions[IMEM_index]);
@@ -64,6 +65,21 @@ void loadInstructions(Instruction_Memory *i_mem, const char *trace)
             parseSBType(raw_instr, &(i_mem->instructions[IMEM_index]));
             i_mem->last = &(i_mem->instructions[IMEM_index]);
 	    }
+        //S-types
+        else if (strcmp(raw_instr, "sb") == 0 ||
+            strcmp(raw_instr, "sh") == 0 ||
+            strcmp(raw_instr, "sb") == 0 ||
+            strcmp(raw_instr, "sw") == 0 ||
+            strcmp(raw_instr, "sd") == 0 )
+        {
+            parseSType(raw_instr, &(i_mem->instructions[IMEM_index]));
+            i_mem->last = &(i_mem->instructions[IMEM_index]);
+	    }
+        else if (strcmp(raw_instr, "jal") == 0)
+        {
+            parseUJType(raw_instr, &(i_mem->instructions[IMEM_index]));
+            i_mem->last = &(i_mem->instructions[IMEM_index]);
+        }
         IMEM_index++;
         PC += 4;
     }
@@ -83,6 +99,11 @@ void parseRType(char *opr, Instruction *instr)
         opcode = 51;
         funct3 = 0;
         funct7 = 0;
+    }
+    else if (strcmp(opr, "sll") == 0){
+        opcode = 0b110011;
+        funct3 = 0b1;
+        funct7 = 0b0;
     }
 
     char *tok = strtok(NULL, ", ");
@@ -110,17 +131,24 @@ void parseIType(char *opr, Instruction *instr)
     instr->instruction = 0;
     unsigned funct3 = 0;
     unsigned opcode = 0;
-    short imm=0;
+    int imm=0;
     unsigned rd, rs_1;
     
     char *tok = strtok(NULL, ", ");
     rd = regIndex(tok);
 
     // ld requires diff handling of strtok
-    if (strcmp(opr, "ld") == 0)
+    if (strcmp(opr, "ld") == 0 ||
+        strcmp(opr, "jalr") == 0)
     {
-        opcode = 3;
-        funct3 = 3;
+        if (strcmp(opr, "ld") == 0){
+            opcode = 3;
+            funct3 = 3;
+        }
+        else if (strcmp(opr, "jalr") == 0){
+            opcode = 0b1100111;
+            funct3 = 0b0;
+        }
 
         tok = strtok(NULL, "(");
         imm = atoi(tok);
@@ -166,6 +194,10 @@ void parseSBType(char *opr, Instruction *instr)
         opcode = 103;
         funct3 = 1;
     }
+    else if (strcmp(opr, "beq") == 0){
+        opcode = 0b1100111;
+        funct3 = 0;
+    }
 
     char *tok = strtok(NULL, ", ");
     unsigned rs_1 = regIndex(tok);
@@ -176,7 +208,7 @@ void parseSBType(char *opr, Instruction *instr)
     tok = strtok(NULL, ", ");
     if (tok[strlen(tok)-1] == '\n')
         tok[strlen(tok)-1] = '\0';
-    short imm = atoi(tok);
+    int imm = atoi(tok);
 
     instr->instruction |= opcode;
     instr->instruction |= ((imm & 31) << 7); //keep 5 LSB from immediate: 31 == 0b00011111
@@ -186,8 +218,65 @@ void parseSBType(char *opr, Instruction *instr)
     instr->instruction |= ((imm >> 5) << (7 + 5 + 3 + 5 + 5)); //remove 5 LSB from immediate
 }
 
+void parseSType(char *opr, Instruction *instr)
+{
+    instr->instruction = 0;
+    unsigned funct3 = 0;
+    unsigned opcode = 0b100011;
+    printf("\nparsing s");
+    if (strcmp(opr, "sb") == 0){
+        funct3 = 0;
+    }
+    else if (strcmp(opr, "sh") == 0){
+        funct3 = 0b1;
+    }
+    else if (strcmp(opr, "sw") == 0){
+        funct3 = 0b10;
+    }
+    else if (strcmp(opr, "sd") == 0){
+        funct3 = 0b111;
+    }
+
+    char *tok = strtok(NULL, ", ");
+    unsigned rs_2 = regIndex(tok);
+
+    tok = strtok(NULL, "(");
+    int imm = atoi(tok);
+    printf("\nparsing sp");        
+    tok = strtok(NULL, ")");
+    unsigned rs_1 = regIndex(tok);
+
+    instr->instruction |= opcode;
+    instr->instruction |= ((imm & 0b11111) << 7); 
+    instr->instruction |= (funct3 << (7 + 5));
+    instr->instruction |= (rs_1 << (7 + 5 + 3));
+    instr->instruction |= (rs_2 << (7 + 5 + 3 + 5));
+    instr->instruction |= ((imm >> 5) << (7 + 5 + 3 + 5 + 5)); //remove 5 LSB from immediate
+}
+
+void parseUJType(char *opr, Instruction *instr)
+{
+    instr->instruction = 0;
+    unsigned opcode = 0b1101111;
+
+    char *tok = strtok(NULL, ", ");
+    unsigned rd = regIndex(tok);
+
+    tok = strtok(NULL, ", ");
+    if (tok[strlen(tok)-1] == '\n')
+        tok[strlen(tok)-1] = '\0';
+    int imm = atoi(tok);
+
+    instr->instruction |= opcode;
+    instr->instruction |= (rd << 7);
+    instr->instruction |= (imm << (7 + 5));
+}
+
 int regIndex(char *reg)
 {
+    if (strcmp(reg, "sp") == 0){
+        return 2; // sp register is x2
+    }
     unsigned i = 0;
     for (i; i < NUM_OF_REGS; i++)
     {

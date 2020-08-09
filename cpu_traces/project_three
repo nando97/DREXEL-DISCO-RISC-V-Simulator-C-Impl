@@ -41,8 +41,8 @@ addi x23, x23, 1                 // j++
 jal x0, for2test                 // go back to inner loop
 exit2: sd x22, 0(x21)            // store result of inner loop 
 addi x19, x19, 1                 // increment i before return to outer loop
-jalr x0, for1test                 // return to outer loop
-exit1: ld x9, 0(sp)                     // restore stored regs
+jal x0, for1test                 // return to outer loop
+exit1: ld x9, 0(sp)              // restore stored regs
 ld x18, 8(sp)
 ld x19, 16(sp)
 ld x20, 24(sp)
@@ -51,5 +51,5 @@ ld x22, 40(sp)
 ld x23, 48(sp)
 ld x1, 56(sp)
 addi sp, sp, 64 
-jalr x0, 0(x1)            // finished matrix_opr; return to caller
-endProg: addi x0, x0, 0          // finished program; do nothing
+jalr x0, 0(x1)                  // finished matrix_opr; return to caller
+endProg: addi x0, x0, 0         // finished program; do nothing
