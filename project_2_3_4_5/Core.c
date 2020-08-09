@@ -50,8 +50,9 @@ Core *initCore(Instruction_Memory *i_mem){
     core->data_mem[30] = 0; 
     core->data_mem[31] = 0;
 
-    // initialize x25 = 4, x22 = 1, x10 = 4;
+    // initialize reg file;
     core->reg_file[0] = 0; // hard-wire x0 to zero
+    core->reg_file[2] = 1023; // sp points to last byte address in data mem
     core->reg_file[10] = 4;
     core->reg_file[22] = 1;
     core->reg_file[25] = 4;
@@ -67,12 +68,9 @@ bool tickFunc(Core *core){
     ControlSignals control_signals;
     ControlUnit(opcode, &control_signals);
 
-    // (Step 3) Get values from reg1 and reg2
-    int reg2_idx = (instruction & 0X1F00000) >> 20;
-    Signal reg2 = core->reg_file[reg2_idx];
-
-    int reg1_idx = (instruction & 0XF8000) >> 15;
-    Signal reg1 = core->reg_file[reg1_idx];
+    // (Step 3) Read values from reg1 and reg2
+    Signal reg1, reg2;
+    readRegisters(instruction, &reg1, &reg2, core->reg_file);
 
     // (Step 4) Generate Immediate
     Signal immediate = ImmeGen((Signal) instruction);
@@ -90,23 +88,12 @@ bool tickFunc(Core *core){
     ALU(reg1, ALU_operand1, ALU_ctrl_signal, &ALU_result, &zero);
 
     // (Step 8) get data from data memory (if applicable)
-    Signal mem_data = '\0';
-    if (control_signals.MemRead == 1)
-        mem_data = (((Signal)core->data_mem[ALU_result+7] << 56) |
-                    ((Signal)core->data_mem[ALU_result+6] << 48) |
-                    ((Signal)core->data_mem[ALU_result+5] << 40) |
-                    ((Signal)core->data_mem[ALU_result+4] << 32) |
-                    ((Signal)core->data_mem[ALU_result+3] << 24) |
-                    ((Signal)core->data_mem[ALU_result+2] << 16) |
-                    ((Signal)core->data_mem[ALU_result+1] << 8) |
-                    (Signal)core->data_mem[ALU_result]);
+    Signal mem_data;
+    readDataFromMemory(control_signals.MemRead, ALU_result, &mem_data, core->data_mem);
 
     // (Step 9) Write Data to register
-    Signal reg_write = MUX(control_signals.MemtoReg, ALU_result, mem_data);
-
-    int reg4_idx = (instruction & 0XF80) >> 7;
-    if (control_signals.RegWrite == 1)
-        core->reg_file[reg4_idx] = reg_write;
+    Signal reg_data = MUX(control_signals.MemtoReg, ALU_result, mem_data);
+    writeDataToReg(control_signals.RegWrite, instruction, reg_data, core->reg_file);
 
     // (Step 10) Increment PC 
     Signal pc_immediate = ShiftLeft1(immediate);
@@ -118,6 +105,36 @@ bool tickFunc(Core *core){
     if (core->PC > core->instr_mem->last->addr)
         return false;
     return true;
+}
+
+// Read data from specified registers
+void readRegisters(unsigned instruction, Signal *reg1, Signal *reg2, Register *reg_file){
+    int reg1_idx = (instruction & 0XF8000) >> 15;
+    *reg1 = reg_file[reg1_idx];
+
+    int reg2_idx = (instruction & 0X1F00000) >> 20;
+    *reg2 = reg_file[reg2_idx];
+}
+
+// Read data from data memory
+void readDataFromMemory(Signal MemRead, Signal mem_addr, Signal *mem_data, Byte *data_mem){
+   if (MemRead == 1)
+        *mem_data = (((Signal)data_mem[mem_addr+7] << 56) |
+                    ((Signal)data_mem[mem_addr+6] << 48) |
+                    ((Signal)data_mem[mem_addr+5] << 40) |
+                    ((Signal)data_mem[mem_addr+4] << 32) |
+                    ((Signal)data_mem[mem_addr+3] << 24) |
+                    ((Signal)data_mem[mem_addr+2] << 16) |
+                    ((Signal)data_mem[mem_addr+1] << 8) |
+                    (Signal)data_mem[mem_addr]); 
+}
+
+// Write data to register
+void writeDataToReg(Signal RegWrite, unsigned instruction, Signal data, Register *reg_file){
+    if (RegWrite == 1){
+        int reg_idx = (instruction & 0XF80) >> 7;
+        reg_file[reg_idx] = data;
+    }
 }
 
 // (1). Control Unit. Refer to Figure 4.18.

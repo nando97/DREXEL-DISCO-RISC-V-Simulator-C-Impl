@@ -34,6 +34,11 @@ typedef struct Core
 Core *initCore(Instruction_Memory *i_mem);
 bool tickFunc(Core *core);
 
+// data r/w operations
+void readRegisters(unsigned instruction, Signal *reg1, Signal *reg2, Register *reg_file);
+void writeDataToReg(Signal RegWrite, unsigned instruction, Signal data, Register *reg_file);
+void readDataFromMemory(Signal MemRead, Signal mem_addr, Signal *mem_data, Byte *data_mem);
+
 // FIXME. Implement the following functions in Core.c
 // FIXME (1). Control Unit.
 typedef struct ControlSignals
