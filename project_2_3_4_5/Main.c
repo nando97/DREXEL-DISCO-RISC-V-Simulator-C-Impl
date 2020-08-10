@@ -32,7 +32,7 @@ int main(int argc, const char *argv[])
     loadInstructions(&instr_mem, argv[1]);
 
     // (3) print all the instruction in binary
-    if (test == 1) {
+    if (test == 1) { // used to test parser
         unsigned PC = 0;
         while (1)
         {
@@ -58,11 +58,56 @@ int main(int argc, const char *argv[])
 
         /* Task Three - Simulation */
         while (core->tick(core));
+        Signal out;
+        Signal mat;
+        Signal readData = 1;
 
-        printf("\nValue of Register x9: %lld", core->reg_file[9]);
-        printf("\nValue of Register x11: %lld", core->reg_file[11]);
-        printf("\nValue of Register x10: %lld", core->reg_file[10]);
-        printf("\nValue of Register x22: %lld", core->reg_file[22]);
+        readDataFromMemory(readData, 0, &mat, core->data_mem);
+        printf("\nValue of mat[0:7]: %lld", mat);
+        readDataFromMemory(readData, 8, &mat, core->data_mem);
+        printf("\nValue of mat[8:15]: %lld", mat);
+        readDataFromMemory(readData, 16, &mat, core->data_mem);
+        printf("\nValue of mat[16:23]: %lld", mat);
+        readDataFromMemory(readData, 24, &mat, core->data_mem);
+        printf("\nValue of mat[24:31]: %lld", mat);
+        readDataFromMemory(readData, 32, &mat, core->data_mem);
+        printf("\nValue of mat[32:39]: %lld", mat);
+        readDataFromMemory(readData, 40, &mat, core->data_mem);
+        printf("\nValue of mat[40:47]: %lld", mat);
+        readDataFromMemory(readData, 48, &mat, core->data_mem);
+        printf("\nValue of mem[48:53]: %lld", mat);
+        readDataFromMemory(readData, 56, &mat, core->data_mem);
+        printf("\nValue of mem[56:63]: %lld", mat);
+        readDataFromMemory(readData, 64, &mat, core->data_mem);
+        printf("\nValue of mem[64:71]: %lld", mat);
+        readDataFromMemory(readData, 72, &mat, core->data_mem);
+        printf("\nValue of mem[72:79]: %lld", mat);
+        readDataFromMemory(readData, 80, &mat, core->data_mem);
+        printf("\nValue of mem[80:87]: %lld", mat);
+        readDataFromMemory(readData, 88, &mat, core->data_mem);
+        printf("\nValue of mem[88:95]: %lld", mat);
+        readDataFromMemory(readData, 96, &mat, core->data_mem);
+        printf("\nValue of mem[96:103]: %lld", mat);
+        readDataFromMemory(readData, 104, &mat, core->data_mem);
+        printf("\nValue of mem[104:111]: %lld", mat);
+        readDataFromMemory(readData, 112, &mat, core->data_mem);
+        printf("\nValue of mem[112:119]: %lld", mat);
+        readDataFromMemory(readData, 120, &mat, core->data_mem);
+        printf("\nValue of mem[120:127]: %lld", mat);
+        
+
+        readDataFromMemory(readData, 128, &out, core->data_mem);
+        printf("\nValue of mem[128:135]: %lld", out);
+        readDataFromMemory(readData, 136, &out, core->data_mem);
+        printf("\nValue of out[136:143]: %lld", out);
+        readDataFromMemory(readData, 144, &out, core->data_mem);
+        printf("\nValue of out[144:151]: %lld", out);
+        readDataFromMemory(readData, 152, &out, core->data_mem);
+        printf("\nValue of out[152:159]: %lld", out);
+        
+       
+       
+    
         printf("\nSimulation is finished.\n");
 
         free(core);

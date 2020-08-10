@@ -21,7 +21,7 @@ bool tickFunc(Core *core){
     Signal opcode = (instruction & 0b1111111);
     ControlSignals control_signals;
     ControlUnit(opcode, &control_signals, instruction);
-    //printf("\n%u", instruction);
+
     // (Step 3) Read values from reg1 and reg2
     Signal reg1data, reg2data;
     readRegisters(instruction, &reg1data, &reg2data, core->reg_file);
@@ -70,7 +70,6 @@ bool tickFunc(Core *core){
 void readRegisters(unsigned instruction, Signal *reg1, Signal *reg2, Register *reg_file){
     int reg1_idx = (instruction & 0XF8000) >> 15;
     *reg1 = reg_file[reg1_idx];
-
     int reg2_idx = (instruction & 0X1F00000) >> 20;
     *reg2 = reg_file[reg2_idx];
 }
@@ -78,15 +77,17 @@ void readRegisters(unsigned instruction, Signal *reg1, Signal *reg2, Register *r
 void writeDataToReg(Signal RegWrite, unsigned instruction, Signal data, Register *reg_file){
     if (RegWrite == 1){
         int reg_idx = (instruction & 0XF80) >> 7;
-        if (reg_idx != 0) // we can't overwrite x0
+        if (reg_idx != 0) { // we can't overwrite x0
             reg_file[reg_idx] = data;
+        }
     }
 }
 
 /* Memory r/w operations */
 void readDataFromMemory(Signal MemRead, Signal mem_addr, Signal *mem_data, Byte *data_mem){
 /* operates as ld */
-   if (MemRead == 1)
+   if (MemRead == 1){
+        *mem_data = 0;
         *mem_data = (((Signal)data_mem[mem_addr+7] << 56) |
                     ((Signal)data_mem[mem_addr+6] << 48) |
                     ((Signal)data_mem[mem_addr+5] << 40) |
@@ -95,6 +96,7 @@ void readDataFromMemory(Signal MemRead, Signal mem_addr, Signal *mem_data, Byte 
                     ((Signal)data_mem[mem_addr+2] << 16) |
                     ((Signal)data_mem[mem_addr+1] << 8) |
                     (Signal)data_mem[mem_addr]); 
+   }
 }
 
 void writeDataToMem(Signal MemWrite, Signal mem_addr, Signal data, Byte *data_mem){
@@ -212,7 +214,7 @@ Signal ImmeGen(Signal instr){
     Signal mask = 0b1111111; //mask for opcode
 
     switch (instr & mask){
-        case 0b11: // load I-types
+        case 0b11: // mem ops I-types
         case 0b10011: // generic I-types
         case 0b1100111: //jalr
             imm = (instr & 0XFFF00000) >> 20;
@@ -249,7 +251,7 @@ void ALU(Signal input_0, Signal input_1, Signal ALU_ctrl_signal,
         if (*ALU_result == 0)
             *zero = 1;
         else
-            *zero = 0; 
+            *zero = 0;
     }
     // For shift left
     if (ALU_ctrl_signal == 4) {

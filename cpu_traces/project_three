@@ -8,7 +8,7 @@ addi x10, x9, 0                  // exitArrLoop: first arg for matrix_op is the 
 addi x18, x0, 128                // make pointer for out array
 addi x11, x18, 0                 // sec arg for matrx_op is out address
 jal x1, 8                        // jump to matrix_op with matrix and out as input
-jal x0, 88                       // after matrix_op, the program is complete (88 hws ahead)
+jal x0, 90                       // after matrix_op, the program is complete (88 hws ahead)
 sll x10, x10, x11                // shift: shift function shifts its 1st arg by its 2nd arg
 jalr x0, 0(x1)                   // return to caller with result in x10 
 addi sp, sp, -64                 // matrix_opr: allocate space on stack for saved regs
@@ -24,24 +24,25 @@ addi x9, x10, 0                  // x9 = matrix addr
 addi x18, x11, 0                 // x18 = out addr
 addi x19, x0, 0                  // i=0
 addi x20, x0, 4                  // max iter
-beq x19, x20, 36                 // for1test: beginning of outer for loop (36 hws ahead) - branch to exit1 if i >= 4
+beq x19, x20, 38                 // for1test: beginning of outer for loop (36 hws ahead) - branch to exit1 if i >= 4
 slli x21, x19, 3                 // x21 = i*8
 add x21, x21, x18                // x21 = out + (i*8) 
 addi x22, x0, 0                  // x22 placeholder for out[i]
 addi x23, x0, 0                  // j = 0
-beq x23, x20, 20                 // for2test: beginning of inner branch to exit2 (20 hws ahead) if j >= 4 
+beq x23, x20, 22                 // for2test: beginning of inner branch to exit2 (20 hws ahead) if j >= 4 
 slli x5, x19, 2                  // x5 = i*4 
 add x5, x5, x23                  // x5 = (i*4) + j
 add x5, x5, x9                   // x5 = mat + (i*4) + j
+slli x5, x5, 3                   // get corret idx
 ld x10, 0(x5)                    // x10 = mat[i*4 + j]
 addi x11, x19, 0                 // x11 = i
-jal x1, -52                      // pass x10(mat) and x11(shift) to shift (-52 hws behind)
+jal x1, -54                      // pass x10(mat) and x11(shift) to shift (-52 hws behind)
 add x22, x22, x10                // x22 = x22 + result of shift
 addi x23, x23, 1                 // j++ 
-jal x0, -18                      // go back to inner loop
+jal x0, -20                      // go back to inner loop
 sd x22, 0(x21)                   // exit2: store result of inner loop 
 addi x19, x19, 1                 // increment i before return to outer loop
-jal x0, -34                      // return to outer loop
+jal x0, -36                      // return to outer loop
 ld x9, 0(sp)                     // exit1:  restore stored regs
 ld x18, 8(sp)
 ld x19, 16(sp)
@@ -52,8 +53,4 @@ ld x23, 48(sp)
 ld x1, 56(sp)
 addi sp, sp, 64 
 jalr x0, 0(x1)                   // finished matrix_opr; return to caller
-ld x9, 128(x0)
-ld x11, 136(x0)
-ld x10, 144(x0)
-ld x22, 152(x0)
 addi x0, x0, 0                   // endProg: finished program; do nothing
