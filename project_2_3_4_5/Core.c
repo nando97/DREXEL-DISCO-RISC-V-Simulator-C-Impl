@@ -55,9 +55,9 @@ bool tickFunc(Core *core){
 
     // (Step 10) Increment PC 
     immediate = ShiftLeft1(immediate);
-    Signal pc_add = MUX((control_signals.Branch && zero), 4, immediate);
-    pc_add = MUX((control_signals.Branch && control_signals.ALUSrc), pc_add, reg1data); //jalr
-    core->PC += pc_add;
+    Signal pc_add = MUX((control_signals.Branch && zero), (core->PC+4), (core->PC+immediate));
+    Signal new_pc = MUX((control_signals.Branch && control_signals.ALUSrc), pc_add, reg1data); // for jalr
+    core->PC = new_pc;
 
     ++core->clk;
     // Are we reaching the final instruction?
@@ -229,7 +229,7 @@ Signal ImmeGen(Signal instr){
             if ((imm >> 19) == 1)
                 imm = (imm | 0XFFFFFFFFFFF00000);
             break;
-        case 0b100011:
+        case 0b100011: // S-type
             imm = ((instr & 0XFE000000) >> 20) | ((instr & 0X00000F80) >> 7);
              // sign extension
             if ((imm >> 11) == 1)
