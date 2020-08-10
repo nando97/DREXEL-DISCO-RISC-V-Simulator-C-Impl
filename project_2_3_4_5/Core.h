@@ -38,6 +38,7 @@ bool tickFunc(Core *core);
 void readRegisters(unsigned instruction, Signal *reg1, Signal *reg2, Register *reg_file);
 void writeDataToReg(Signal RegWrite, unsigned instruction, Signal data, Register *reg_file);
 void readDataFromMemory(Signal MemRead, Signal mem_addr, Signal *mem_data, Byte *data_mem);
+void writeDataToMem(Signal MemWrite, Signal mem_addr, Signal data, Byte *data_mem);
 
 // FIXME. Implement the following functions in Core.c
 // FIXME (1). Control Unit.
@@ -51,7 +52,7 @@ typedef struct ControlSignals
     Signal ALUSrc;
     Signal RegWrite;
 }ControlSignals;
-void ControlUnit(Signal input, ControlSignals *signals);
+void ControlUnit(Signal input, ControlSignals *signals, unsigned instruction);
 
 // FIXME (2). ALU Control Unit.
 Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3);

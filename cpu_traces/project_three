@@ -1,11 +1,11 @@
-addi x9, x0, 16                  // main: x5 is the idx of the array
+addi x9, x0, 16                  // main: x5 is the idx of the array 0000000 10000 00000 000 01001 0010011
 beq x9, x0, 10                   // arrLoop: stop loop when x5 = 0 to prevent neg idx 
 addi x9, x9, -1                  // decrement array idx by 1
 slli x5, x9, 3                   // multiply x9 by 8 to get next mem address
 sd x9, 0(x5)                     // value is equal to array idx, so store array idx
 jal x0, -8                       // jump back to array loop
 addi x10, x9, 0                  // exitArrLoop: first arg for matrix_op is the matrix addr 
-addi x18, x0, 16                 // make pointer for out array
+addi x18, x0, 128                // make pointer for out array
 addi x11, x18, 0                 // sec arg for matrx_op is out address
 jal x1, 8                        // jump to matrix_op with matrix and out as input
 jal x0, 88                       // after matrix_op, the program is complete (88 hws ahead)
@@ -52,4 +52,8 @@ ld x23, 48(sp)
 ld x1, 56(sp)
 addi sp, sp, 64 
 jalr x0, 0(x1)                   // finished matrix_opr; return to caller
+ld x9, 128(x0)
+ld x11, 136(x0)
+ld x10, 144(x0)
+ld x22, 152(x0)
 addi x0, x0, 0                   // endProg: finished program; do nothing

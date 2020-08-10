@@ -187,17 +187,13 @@ void parseSBType(char *opr, Instruction *instr)
 {
     instr->instruction = 0;
     unsigned funct3 = 0;
-    unsigned opcode = 0;
+    unsigned opcode = 0b1100011;
 
     if (strcmp(opr, "bne") == 0)
-    {
-        opcode = 103;
         funct3 = 1;
-    }
-    else if (strcmp(opr, "beq") == 0){
-        opcode = 0b1100111;
+
+    else if (strcmp(opr, "beq") == 0)
         funct3 = 0;
-    }
 
     char *tok = strtok(NULL, ", ");
     unsigned rs_1 = regIndex(tok);
@@ -223,7 +219,7 @@ void parseSType(char *opr, Instruction *instr)
     instr->instruction = 0;
     unsigned funct3 = 0;
     unsigned opcode = 0b100011;
-    printf("\nparsing s");
+
     if (strcmp(opr, "sb") == 0){
         funct3 = 0;
     }
@@ -234,7 +230,7 @@ void parseSType(char *opr, Instruction *instr)
         funct3 = 0b10;
     }
     else if (strcmp(opr, "sd") == 0){
-        funct3 = 0b111;
+        funct3 = 0b11;
     }
 
     char *tok = strtok(NULL, ", ");
@@ -242,7 +238,7 @@ void parseSType(char *opr, Instruction *instr)
 
     tok = strtok(NULL, "(");
     int imm = atoi(tok);
-    printf("\nparsing sp");        
+
     tok = strtok(NULL, ")");
     unsigned rs_1 = regIndex(tok);
 
