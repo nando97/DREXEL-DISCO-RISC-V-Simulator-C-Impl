@@ -15,13 +15,13 @@ Core *initCore(Instruction_Memory *i_mem){
 
     // 40(x1) = -63
     core->data_mem[40] = -63; 
-    core->data_mem[41] = 0; 
-    core->data_mem[42] = 0; 
-    core->data_mem[43] = 0; 
-    core->data_mem[44] = 0; 
-    core->data_mem[45] = 0; 
-    core->data_mem[46] = 0; 
-    core->data_mem[47] = 0; 
+    core->data_mem[41] = 0xFF; 
+    core->data_mem[42] = 0xFF; 
+    core->data_mem[43] = 0xFF; 
+    core->data_mem[44] = 0xFF; 
+    core->data_mem[45] = 0xFF; 
+    core->data_mem[46] = 0xFF; 
+    core->data_mem[47] = 0xFF; 
 
     // 48(x1) = 63
     core->data_mem[48] = 63; 

@@ -104,6 +104,11 @@ void parseRType(char *opr, Instruction *instr)
         opcode = 0b110011;
         funct3 = 0b1;
         funct7 = 0b0;
+    }else if (strcmp(opr, "sub") == 0)
+    {
+        opcode = 51;
+        funct3 = 0;
+        funct7 = 0b010000;
     }
 
     char *tok = strtok(NULL, ", ");
