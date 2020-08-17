@@ -14,19 +14,24 @@ typedef uint8_t Byte;
 typedef int64_t Signal;
 typedef int64_t Register;
 
+typedef struct ControlSignals
+{
+    Signal Branch;
+    Signal MemRead;
+    Signal MemtoReg;
+    Signal ALUOp;
+    Signal MemWrite;
+    Signal ALUSrc;
+    Signal RegWrite;
+}ControlSignals;
+
 typedef struct IFIDRegister {
     Addr PC;
     unsigned instruction;
 } IFIDRegister;
 
 typedef struct IDEXRegister {
-    Signal RegWrite;
-    Signal MemtoReg;
-    Signal MemRead;
-    Signal Branch;
-    Signal MemWrite;
-    Signal ALUOp;
-    Signal ALUSrc;
+    ControlSignals CtrlSignal;
     Signal Funct7;
     Signal Funct3;
     Addr PC;
@@ -99,17 +104,8 @@ void writeback(MEMWBRegister *memwb_reg, Register *reg_file);
 
 // FIXME. Implement the following functions in Core.c
 // FIXME (1). Control Unit.
-typedef struct ControlSignals
-{
-    Signal Branch;
-    Signal MemRead;
-    Signal MemtoReg;
-    Signal ALUOp;
-    Signal MemWrite;
-    Signal ALUSrc;
-    Signal RegWrite;
-}ControlSignals;
-void ControlUnit(Signal input, IDEXRegister *idex_reg, unsigned instruction);
+
+void ControlUnit(Signal input, ControlSignals *signals, unsigned instruction);
 
 // FIXME (2). ALU Control Unit.
 Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3);

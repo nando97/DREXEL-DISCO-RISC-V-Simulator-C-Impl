@@ -72,7 +72,7 @@ bool tickFunc(Core *core){
     if (core->st2_en == 1) {
         //Stage 2 ID
         instructionDecode(core->ifid_reg, core->idex_reg, core->reg_file);
-        if (core->last_instr == 1)
+        if (core->last_instr == 1 && core->st1_en == 0)
             core->st2_en = 0;
         else
             core->st3_en = 1;
@@ -100,7 +100,7 @@ void instructionFetch(IFIDRegister *ifid_reg, Instruction_Memory *instr_mem, Add
 
 void instructionDecode(IFIDRegister *ifid_reg, IDEXRegister *idex_reg, Register *reg_file) {
     Signal opcode = (ifid_reg->instruction & 0b1111111);
-    ControlUnit(opcode, idex_reg, ifid_reg->instruction);
+    ControlUnit(opcode, &idex_reg->CtrlSignal, ifid_reg->instruction);
     idex_reg->PC = ifid_reg->PC;
     readRegisters(ifid_reg->instruction, &idex_reg->ReadData1, &idex_reg->ReadData2, reg_file);
     idex_reg->Funct7 = (ifid_reg->instruction & 0XFE000000) >> 25;
@@ -111,14 +111,14 @@ void instructionDecode(IFIDRegister *ifid_reg, IDEXRegister *idex_reg, Register 
 
 void execution(IDEXRegister *idex_reg, EXMEMRegister *exmem_reg) {
     exmem_reg->writeIndex = idex_reg->writeIndex;
-    exmem_reg->MemWrite = idex_reg->MemWrite;
-    exmem_reg->MemRead = idex_reg->MemRead;
-    exmem_reg->Branch = idex_reg->Branch;
-    exmem_reg->RegWrite = idex_reg->RegWrite;
-    exmem_reg->MemtoReg = idex_reg->MemtoReg;
+    exmem_reg->MemWrite = idex_reg->CtrlSignal.MemWrite;
+    exmem_reg->MemRead = idex_reg->CtrlSignal.MemRead;
+    exmem_reg->Branch = idex_reg->CtrlSignal.Branch;
+    exmem_reg->RegWrite = idex_reg->CtrlSignal.RegWrite;
+    exmem_reg->MemtoReg = idex_reg->CtrlSignal.MemtoReg;
     exmem_reg->ReadData2 = idex_reg->ReadData2;
-    Signal ALU_operand1 = MUX(idex_reg->ALUSrc, idex_reg->ReadData2, idex_reg->Immediate);
-    Signal ALU_ctrl_signal = ALUControlUnit(idex_reg->ALUOp, idex_reg->Funct7, idex_reg->Funct3);
+    Signal ALU_operand1 = MUX(idex_reg->CtrlSignal.ALUSrc, idex_reg->ReadData2, idex_reg->Immediate);
+    Signal ALU_ctrl_signal = ALUControlUnit(idex_reg->CtrlSignal.ALUOp, idex_reg->Funct7, idex_reg->Funct3);
     ALU(idex_reg->ReadData1, ALU_operand1, ALU_ctrl_signal, &exmem_reg->ALU, &exmem_reg->Zero);
     Signal shifted = ShiftLeft1(idex_reg->Immediate);
     exmem_reg->AddSum = idex_reg->PC + shifted;
@@ -185,72 +185,72 @@ void writeDataToMem(Signal MemWrite, Signal mem_addr, Signal data, Byte *data_me
 }
 
 // (1). Control Unit. Refer to Figure 4.18.
-void ControlUnit(Signal opcode, IDEXRegister *idex_reg, unsigned instruction){
+void ControlUnit(Signal opcode, ControlSignals *signals, unsigned instruction){
     // For R-type
     if (opcode == 51) {
-        idex_reg->ALUSrc = 0;
-        idex_reg->MemtoReg = 0;
-        idex_reg->RegWrite = 1;
-        idex_reg->MemRead = 0;
-        idex_reg->MemWrite = 0;
-        idex_reg->Branch = 0;
-        idex_reg->ALUOp = 2;
+        signals->ALUSrc = 0;
+        signals->MemtoReg = 0;
+        signals->RegWrite = 1;
+        signals->MemRead = 0;
+        signals->MemWrite = 0;
+        signals->Branch = 0;
+        signals->ALUOp = 2;
     }
     // For SB-type
     else if (opcode == 0b1100011){
-        idex_reg->ALUSrc = 0;
-        idex_reg->MemtoReg = 0; // dont-care
-        idex_reg->RegWrite = 0;
-        idex_reg->MemRead = 0;
-        idex_reg->MemWrite = 0;
-        idex_reg->Branch = 1;
-        idex_reg->ALUOp = 1;
+        signals->ALUSrc = 0;
+        signals->MemtoReg = 0; // dont-care
+        signals->RegWrite = 0;
+        signals->MemRead = 0;
+        signals->MemWrite = 0;
+        signals->Branch = 1;
+        signals->ALUOp = 1;
     }
     // For I-type
     else if (opcode == 0b11 || opcode == 0b10011){
-        idex_reg->ALUSrc = 1;
-        idex_reg->RegWrite = 1;
+        signals->ALUSrc = 1;
+        signals->RegWrite = 1;
         if (opcode == 0b11){ //ld
-            idex_reg->MemtoReg = 1;  
-            idex_reg->MemRead = 1; 
+            signals->MemtoReg = 1;  
+            signals->MemRead = 1; 
         }
         else if (opcode == 0b10011){ //addi, slli
-            idex_reg->MemtoReg = 0; 
-            idex_reg->MemRead = 0;
+            signals->MemtoReg = 0; 
+            signals->MemRead = 0;
         }
-        idex_reg->MemWrite = 0;
-        idex_reg->Branch = 0;
-        idex_reg->ALUOp = 0;
+        signals->MemWrite = 0;
+        signals->Branch = 0;
+        signals->ALUOp = 0;
     }
     // For S-type 
     else if (opcode == 0b100011){
-        idex_reg->ALUSrc = 1;
-        idex_reg->MemtoReg = 0; //don't care
-        idex_reg->RegWrite = 0;
-        idex_reg->MemRead = 0;
-        idex_reg->MemWrite = 1;
-        idex_reg->Branch = 0;
-        idex_reg->ALUOp = 0; 
+        signals->ALUSrc = 1;
+        signals->MemtoReg = 0; //don't care
+        signals->RegWrite = 0;
+        signals->MemRead = 0;
+        signals->MemWrite = 1;
+        signals->Branch = 0;
+        signals->ALUOp = 0; 
     }
     // For jalr 
     else if (opcode == 0b1100111){
-        idex_reg->ALUSrc = 1;
-        idex_reg->MemtoReg = 0;
-        idex_reg->RegWrite = 1;
-        idex_reg->MemRead = 0;
-        idex_reg->MemWrite = 0;
-        idex_reg->Branch = 1;
-        idex_reg->ALUOp = 0;
+        signals->ALUSrc = 1;
+        signals->MemtoReg = 0;
+        signals->RegWrite = 1;
+        signals->MemRead = 0;
+        signals->MemWrite = 0;
+        signals->Branch = 1;
+        signals->ALUOp = 0;
     }
     // For jal
     else if (opcode == 0b1101111){
-        idex_reg->ALUSrc = 0; //
-        idex_reg->MemtoReg = 0; // dont care - muxed out
-        idex_reg->RegWrite = 1;
-        idex_reg->MemRead = 0;
-        idex_reg->MemWrite = 0;
-        idex_reg->Branch = 1; // use this to mux on data for rd
-        idex_reg->ALUOp = 3; // automatic zero - just jump 
+        signals->ALUSrc = 0; //
+        signals->MemtoReg = 0; // dont care - muxed out
+        signals->RegWrite = 1;
+        signals->MemRead = 0;
+        signals->MemWrite = 0;
+        signals->Branch = 1; // use this to mux on data for rd
+        signals->ALUOp = 3; // automatic zero - just jump 
     }
 }
 
