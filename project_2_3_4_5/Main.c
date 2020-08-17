@@ -63,17 +63,17 @@ int main(int argc, const char *argv[])
         Signal readData = 1;
 
         readDataFromMemory(readData, 0, &mat, core->data_mem);
-        printf("\nValue of mat[0:7]: %lld", mat);
+        printf("\nValue of mem[0:7]: %lld", mat);
         readDataFromMemory(readData, 8, &mat, core->data_mem);
-        printf("\nValue of mat[8:15]: %lld", mat);
+        printf("\nValue of mem[8:15]: %lld", mat);
         readDataFromMemory(readData, 16, &mat, core->data_mem);
-        printf("\nValue of mat[16:23]: %lld", mat);
+        printf("\nValue of mem[16:23]: %lld", mat);
         readDataFromMemory(readData, 24, &mat, core->data_mem);
-        printf("\nValue of mat[24:31]: %lld", mat);
+        printf("\nValue of mem[24:31]: %lld", mat);
         readDataFromMemory(readData, 32, &mat, core->data_mem);
-        printf("\nValue of mat[32:39]: %lld", mat);
+        printf("\nValue of mem[32:39]: %lld", mat);
         readDataFromMemory(readData, 40, &mat, core->data_mem);
-        printf("\nValue of mat[40:47]: %lld", mat);
+        printf("\nValue of mem[40:47]: %lld", mat);
         readDataFromMemory(readData, 48, &mat, core->data_mem);
         printf("\nValue of mem[48:53]: %lld", mat);
         readDataFromMemory(readData, 56, &mat, core->data_mem);
@@ -99,11 +99,11 @@ int main(int argc, const char *argv[])
         readDataFromMemory(readData, 128, &out, core->data_mem);
         printf("\nValue of mem[128:135]: %lld", out);
         readDataFromMemory(readData, 136, &out, core->data_mem);
-        printf("\nValue of out[136:143]: %lld", out);
+        printf("\nValue of mem[136:143]: %lld", out);
         readDataFromMemory(readData, 144, &out, core->data_mem);
-        printf("\nValue of out[144:151]: %lld", out);
+        printf("\nValue of mem[144:151]: %lld", out);
         readDataFromMemory(readData, 152, &out, core->data_mem);
-        printf("\nValue of out[152:159]: %lld", out);
+        printf("\nValue of mem[152:159]: %lld", out);
         
        
        
