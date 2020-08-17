@@ -14,6 +14,49 @@ typedef uint8_t Byte;
 typedef int64_t Signal;
 typedef int64_t Register;
 
+typedef struct IFIDRegister {
+    Addr PC;
+    unsigned instruction;
+} IFIDRegister;
+
+typedef struct IDEXRegister {
+    Signal RegWrite;
+    Signal MemtoReg;
+    Signal MemRead;
+    Signal Branch;
+    Signal MemWrite;
+    Signal ALUOp;
+    Signal ALUSrc;
+    Signal Funct7;
+    Signal Funct3;
+    Addr PC;
+    Signal ReadData1;
+    Signal ReadData2;
+    Signal Immediate;
+    int writeIndex;
+} IDEXRegister;
+
+typedef struct EXMEMRegister {
+    Signal RegWrite;
+    Signal MemtoReg;
+    Signal MemRead;
+    Signal Branch;
+    Signal MemWrite;
+    Signal ALU;
+    Signal Zero;
+    Signal ReadData2;
+    Signal AddSum;
+    int writeIndex;
+} EXMEMRegister;
+
+typedef struct MEMWBRegister {
+    Signal RegWrite;
+    Signal MemtoReg;
+    Signal ALU;
+    Signal MemData;
+    int writeIndex;
+} MEMWBRegister;
+
 struct Core;
 typedef struct Core Core;
 typedef struct Core
@@ -29,16 +72,30 @@ typedef struct Core
     Register reg_file[32]; // register file.
 
     bool (*tick)(Core *core);
-}Core;
+
+    IFIDRegister *ifid_reg;
+    IDEXRegister *idex_reg;
+    EXMEMRegister *exmem_reg;
+    MEMWBRegister *memwb_reg;
+
+    
+    int st5_en, st4_en, st3_en, st2_en, st1_en, last_instr;
+} Core;
 
 Core *initCore(Instruction_Memory *i_mem);
 bool tickFunc(Core *core);
 
+void instructionFetch(IFIDRegister *ifid_reg, Instruction_Memory *instr_mem, Addr PC);
+void instructionDecode(IFIDRegister *ifid_reg, IDEXRegister *idex_reg, Register *reg_file);
+void execution(IDEXRegister *idex_reg, EXMEMRegister *exmem_reg);
+void memoryAccess(EXMEMRegister *exmem_reg, MEMWBRegister *memwb_reg, Byte *data_mem);
+
 // data r/w operations
 void readRegisters(unsigned instruction, Signal *reg1, Signal *reg2, Register *reg_file);
-void writeDataToReg(Signal RegWrite, unsigned instruction, Signal data, Register *reg_file);
+void writeDataToReg(Signal RegWrite, int writeIndex, Signal data, Register *reg_file);
 void readDataFromMemory(Signal MemRead, Signal mem_addr, Signal *mem_data, Byte *data_mem);
 void writeDataToMem(Signal MemWrite, Signal mem_addr, Signal data, Byte *data_mem);
+void writeback(MEMWBRegister *memwb_reg, Register *reg_file);
 
 // FIXME. Implement the following functions in Core.c
 // FIXME (1). Control Unit.
@@ -52,7 +109,7 @@ typedef struct ControlSignals
     Signal ALUSrc;
     Signal RegWrite;
 }ControlSignals;
-void ControlUnit(Signal input, ControlSignals *signals, unsigned instruction);
+void ControlUnit(Signal input, IDEXRegister *idex_reg, unsigned instruction);
 
 // FIXME (2). ALU Control Unit.
 Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3);
