@@ -259,6 +259,9 @@ Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3){
     // For add
     if (ALUOp == 2 && Funct7 == 0 && Funct3 == 0)
         return 2;
+    // For add
+    if (ALUOp == 2 && Funct7 == 32 && Funct3 == 0)
+        return 6;
     // For sll
     if (ALUOp == 2 && Funct7 == 0 && Funct3 == 1)
         return 4;
