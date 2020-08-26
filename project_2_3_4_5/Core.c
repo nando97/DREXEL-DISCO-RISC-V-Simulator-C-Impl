@@ -102,11 +102,12 @@ void instructionDecode(IFIDRegister *ifid_reg, IDEXRegister *idex_reg, Register 
                        HazardDetectionSignals *hazard_signals){
 
     Signal opcode = (ifid_reg->instruction & 0b1111111);
-    ControlUnit(opcode, &idex_reg->CtrlSignal, ifid_reg->instruction);
 
     HazardDetectionUnit(ifid_reg, idex_reg, hazard_signals);
     if (hazard_signals->StallPipeline == 1)
         Stall(&idex_reg->CtrlSignal);
+    else
+        ControlUnit(opcode, &idex_reg->CtrlSignal, ifid_reg->instruction);
 
     idex_reg->PC = ifid_reg->PC;
     readRegisters(ifid_reg->instruction, &idex_reg->ReadData1, &idex_reg->ReadData2, reg_file);
@@ -395,7 +396,8 @@ void HazardDetectionUnit(IFIDRegister *ifid_reg, IDEXRegister *idex_reg, HazardD
     int ifid_Rs1 = (ifid_reg->instruction & 0XF8000) >> 15;
     int ifid_Rs2 = (ifid_reg->instruction & 0X1F00000) >> 20; 
 
-    if (idex_reg->CtrlSignal.MemRead == 1 && ((idex_reg->writeIndex == ifid_Rs1) || (idex_reg->writeIndex == ifid_Rs2))){
+    if (idex_reg->CtrlSignal.MemRead == 1 && 
+      ((idex_reg->writeIndex == ifid_Rs1) || (idex_reg->writeIndex == ifid_Rs2))){
         hazard_signals->PCWrite=0;
         hazard_signals->IFIDWrite=0;
         hazard_signals->StallPipeline=1;
