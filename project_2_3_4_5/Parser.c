@@ -110,6 +110,16 @@ void parseRType(char *opr, Instruction *instr)
         funct3 = 0;
         funct7 = 0b0100000;
     }
+    else if (strcmp(opr, "or") == 0){
+        opcode = 0b110011;
+        funct3 = 0b110;
+        funct7 = 0;
+    }
+    else if (strcmp(opr, "and") == 0){
+        opcode = 0b110011;
+        funct3 = 0b111;
+        funct7 = 0;
+    }
 
     char *tok = strtok(NULL, ", ");
     unsigned rd = regIndex(tok);

@@ -13,43 +13,32 @@ Core *initCore(Instruction_Memory *i_mem){
     core->exmem_reg = (EXMEMRegister *)malloc(sizeof(EXMEMRegister));
     core->memwb_reg = (MEMWBRegister *)malloc(sizeof(MEMWBRegister));
 
-    // 40(x1) = -63
-    core->data_mem[40] = -63; 
-    core->data_mem[41] = 0xFF; 
-    core->data_mem[42] = 0xFF; 
-    core->data_mem[43] = 0xFF; 
-    core->data_mem[44] = 0xFF; 
-    core->data_mem[45] = 0xFF; 
-    core->data_mem[46] = 0xFF; 
-    core->data_mem[47] = 0xFF; 
-
-    // 48(x1) = 63
-    core->data_mem[48] = 63; 
-    core->data_mem[49] = 0; 
-    core->data_mem[50] = 0; 
-    core->data_mem[51] = 0; 
-    core->data_mem[52] = 0; 
-    core->data_mem[53] = 0; 
-    core->data_mem[54] = 0; 
-    core->data_mem[55] = 0; 
+    // 40(x1) = 100
+    core->data_mem[40] = 100; 
+    core->data_mem[41] = 0; 
+    core->data_mem[42] = 0; 
+    core->data_mem[43] = 0; 
+    core->data_mem[44] = 0; 
+    core->data_mem[45] = 0; 
+    core->data_mem[46] = 0; 
+    core->data_mem[47] = 0; 
 
     // initialize reg file;
     core->reg_file[0] = 0; // hard-wire x0 to zero
     core->reg_file[1] = 0;
-    core->reg_file[2] = 10;
-    core->reg_file[3] = -15;
-    core->reg_file[4] = 20;
-    core->reg_file[5] = 30;
-    core->reg_file[6] = -35;
+    core->reg_file[5] = 26;
+    core->reg_file[6] = -27;
 
-
-   return core;
+    return core;
 }
 
 bool tickFunc(Core *core){
+    //initialize hazard detection signals
+    HazardDetectionSignals hazard_signals;
+    Signal WB_mux_to_ALU_inputs;
     if (core->st5_en == 1) {
         // Stage 5 WB
-        writeback(core->memwb_reg, core->reg_file);
+        writeback(core->memwb_reg, core->reg_file, &WB_mux_to_ALU_inputs);
         if (core->last_instr == 1 && core->st4_en == 0)
             return false;
     }
@@ -63,7 +52,7 @@ bool tickFunc(Core *core){
     }
     if (core->st3_en == 1) {
         //Stage 3 EX
-        execution(core->idex_reg, core->exmem_reg);
+        execution(core->idex_reg, core->exmem_reg, core->memwb_reg, WB_mux_to_ALU_inputs);
         if (core->last_instr == 1 && core->st2_en == 0)
             core->st3_en = 0;
         else
@@ -71,7 +60,7 @@ bool tickFunc(Core *core){
     }
     if (core->st2_en == 1) {
         //Stage 2 ID
-        instructionDecode(core->ifid_reg, core->idex_reg, core->reg_file);
+        instructionDecode(core->ifid_reg, core->idex_reg, core->reg_file, &hazard_signals);
         if (core->last_instr == 1 && core->st1_en == 0)
             core->st2_en = 0;
         else
@@ -79,37 +68,59 @@ bool tickFunc(Core *core){
     }
     if (core->st1_en == 1) {
         //Stage 1 IF
-        instructionFetch(core->ifid_reg, core->instr_mem, core->PC);
+        if (core->st2_en == 0){
+            hazard_signals.PCWrite = 1;
+            hazard_signals.IFIDWrite = 1; 
+        }
+
+        instructionFetch(core->ifid_reg, core->instr_mem, core->PC, hazard_signals.IFIDWrite);
         if (core->PC > core->instr_mem->last->addr){
             core->last_instr = 1;
             core->st1_en = 0;
         }
         else
             core->st2_en = 1;
+            
+        if (hazard_signals.PCWrite == 1){
+            Signal pc_add = MUX((core->exmem_reg->Branch && core->exmem_reg->Zero), (core->PC+4), (core->PC+core->exmem_reg->AddSum));
+            core->PC = pc_add;
+        }
     }
-    Signal pc_add = MUX((core->exmem_reg->Branch && core->exmem_reg->Zero), (core->PC+4), (core->PC+core->exmem_reg->AddSum));
-    core->PC = pc_add;
+
     ++core->clk;
     return true;
 }
 
-void instructionFetch(IFIDRegister *ifid_reg, Instruction_Memory *instr_mem, Addr PC) {
-    ifid_reg->PC = PC;
-    ifid_reg->instruction = instr_mem->instructions[PC / 4].instruction;
+void instructionFetch(IFIDRegister *ifid_reg, Instruction_Memory *instr_mem, Addr PC, Signal IFIDWrite) {
+    if (IFIDWrite == 1){
+        ifid_reg->PC = PC;
+        ifid_reg->instruction = instr_mem->instructions[PC / 4].instruction;
+    }
 }
 
-void instructionDecode(IFIDRegister *ifid_reg, IDEXRegister *idex_reg, Register *reg_file) {
+void instructionDecode(IFIDRegister *ifid_reg, IDEXRegister *idex_reg, Register *reg_file,
+                       HazardDetectionSignals *hazard_signals){
+
     Signal opcode = (ifid_reg->instruction & 0b1111111);
     ControlUnit(opcode, &idex_reg->CtrlSignal, ifid_reg->instruction);
+
+    HazardDetectionUnit(ifid_reg, idex_reg, hazard_signals);
+    if (hazard_signals->StallPipeline == 1)
+        Stall(&idex_reg->CtrlSignal);
+
     idex_reg->PC = ifid_reg->PC;
     readRegisters(ifid_reg->instruction, &idex_reg->ReadData1, &idex_reg->ReadData2, reg_file);
     idex_reg->Funct7 = (ifid_reg->instruction & 0XFE000000) >> 25;
     idex_reg->Funct3 = (ifid_reg->instruction & 0X7000) >> 12;
     idex_reg->Immediate = ImmeGen((Signal) ifid_reg->instruction);
     idex_reg->writeIndex = (ifid_reg->instruction & 0XF80) >> 7;
+    idex_reg->Rs1 = (ifid_reg->instruction & 0XF8000) >> 15;
+    idex_reg->Rs2 = (ifid_reg->instruction & 0X1F00000) >> 20;
 }
 
-void execution(IDEXRegister *idex_reg, EXMEMRegister *exmem_reg) {
+void execution(IDEXRegister *idex_reg, EXMEMRegister *exmem_reg, MEMWBRegister *memwb_reg, 
+               Signal WB_mux_output){
+
     exmem_reg->writeIndex = idex_reg->writeIndex;
     exmem_reg->MemWrite = idex_reg->CtrlSignal.MemWrite;
     exmem_reg->MemRead = idex_reg->CtrlSignal.MemRead;
@@ -117,9 +128,17 @@ void execution(IDEXRegister *idex_reg, EXMEMRegister *exmem_reg) {
     exmem_reg->RegWrite = idex_reg->CtrlSignal.RegWrite;
     exmem_reg->MemtoReg = idex_reg->CtrlSignal.MemtoReg;
     exmem_reg->ReadData2 = idex_reg->ReadData2;
-    Signal ALU_operand1 = MUX(idex_reg->CtrlSignal.ALUSrc, idex_reg->ReadData2, idex_reg->Immediate);
+
+    ForwardingSignals fw_signals;
+    ForwardingUnit(idex_reg, exmem_reg, memwb_reg, &fw_signals);
+
+    Signal ALU_operand0 = MUX4_2(fw_signals.ForwardA, idex_reg->ReadData1, WB_mux_output, exmem_reg->ALU, 0);
+    Signal ALU_operand1 = MUX4_2(fw_signals.ForwardB, idex_reg->ReadData2, WB_mux_output, exmem_reg->ALU, 0);
+    ALU_operand1 = MUX(idex_reg->CtrlSignal.ALUSrc, ALU_operand1, idex_reg->Immediate);
+
     Signal ALU_ctrl_signal = ALUControlUnit(idex_reg->CtrlSignal.ALUOp, idex_reg->Funct7, idex_reg->Funct3);
     ALU(idex_reg->ReadData1, ALU_operand1, ALU_ctrl_signal, &exmem_reg->ALU, &exmem_reg->Zero);
+
     Signal shifted = ShiftLeft1(idex_reg->Immediate);
     exmem_reg->AddSum = idex_reg->PC + shifted;
 }
@@ -133,8 +152,9 @@ void memoryAccess(EXMEMRegister *exmem_reg, MEMWBRegister *memwb_reg, Byte *data
     writeDataToMem(exmem_reg->MemWrite, exmem_reg->ALU, exmem_reg->ReadData2, data_mem);
 }
 
-void writeback(MEMWBRegister *memwb_reg, Register *reg_file) {
+void writeback(MEMWBRegister *memwb_reg, Register *reg_file, Signal *mux_output) {
     Signal new_reg_data = MUX(memwb_reg->MemtoReg, memwb_reg->ALU, memwb_reg->MemData);
+    *mux_output = new_reg_data; // goes out to the new muxes in the EX stage
     writeDataToReg(memwb_reg->RegWrite, memwb_reg->writeIndex, new_reg_data, reg_file);
 }
 
@@ -259,9 +279,15 @@ Signal ALUControlUnit(Signal ALUOp, Signal Funct7, Signal Funct3){
     // For add
     if (ALUOp == 2 && Funct7 == 0 && Funct3 == 0)
         return 2;
-    // For add
+    // For sub
     if (ALUOp == 2 && Funct7 == 32 && Funct3 == 0)
         return 6;
+    // For OR
+    if (ALUOp == 2 && Funct7 == 0 && Funct3 == 0b110)
+        return 1;
+    // for AND
+    if (ALUOp == 2 && Funct7 == 0 && Funct3 == 0b111)
+        return 0;
     // For sll
     if (ALUOp == 2 && Funct7 == 0 && Funct3 == 1)
         return 4;
@@ -319,6 +345,16 @@ Signal ImmeGen(Signal instr){
 void ALU(Signal input_0, Signal input_1, Signal ALU_ctrl_signal,
          Signal *ALU_result, Signal *zero){
 
+    // For AND 
+    if (ALU_ctrl_signal == 0){
+        *ALU_result = (input_0 & input_1);
+        *zero = 0;
+    }
+    // For OR
+    if (ALU_ctrl_signal == 1){
+        *ALU_result = (input_0 | input_1);
+        *zero = 0;
+    }
     // For addition
     if (ALU_ctrl_signal == 2) {
         *ALU_result = (input_0 + input_1);
@@ -355,6 +391,47 @@ void ALU(Signal input_0, Signal input_1, Signal ALU_ctrl_signal,
     }
 }
 
+void HazardDetectionUnit(IFIDRegister *ifid_reg, IDEXRegister *idex_reg, HazardDetectionSignals *hazard_signals){
+    int ifid_Rs1 = (ifid_reg->instruction & 0XF8000) >> 15;
+    int ifid_Rs2 = (ifid_reg->instruction & 0X1F00000) >> 20; 
+
+    if (idex_reg->CtrlSignal.MemRead == 1 && ((idex_reg->writeIndex == ifid_Rs1) || (idex_reg->writeIndex == ifid_Rs2))){
+        hazard_signals->PCWrite=0;
+        hazard_signals->IFIDWrite=0;
+        hazard_signals->StallPipeline=1;
+    }
+    else{
+        hazard_signals->PCWrite=1;
+        hazard_signals->IFIDWrite=1;
+        hazard_signals->StallPipeline=0;
+    }
+}
+
+void Stall(ControlSignals *CtrlSignal){
+    CtrlSignal->ALUSrc = 0; 
+    CtrlSignal->MemtoReg = 0; 
+    CtrlSignal->RegWrite = 0;
+    CtrlSignal->MemRead = 0;
+    CtrlSignal->MemWrite = 0;
+    CtrlSignal->Branch = 0; 
+    CtrlSignal->ALUOp = 0; 
+}
+
+void ForwardingUnit(IDEXRegister *idex_reg, EXMEMRegister *exmem_reg,
+                    MEMWBRegister *memwb_reg, ForwardingSignals *fw_signals){
+    fw_signals->ForwardA = 0;
+    fw_signals->ForwardB = 0;
+    if (exmem_reg->RegWrite == 1 && exmem_reg->writeIndex != 0 && exmem_reg->writeIndex == idex_reg->Rs1)
+        fw_signals->ForwardA = 2;
+    else if (memwb_reg->RegWrite == 1 && memwb_reg->writeIndex != 0 && memwb_reg->writeIndex == idex_reg->Rs1)
+        fw_signals->ForwardB = 1;
+
+    if (exmem_reg->RegWrite == 1 && exmem_reg->writeIndex != 0 && exmem_reg->writeIndex == idex_reg->Rs2)
+        fw_signals->ForwardB = 2;
+    else if (memwb_reg->RegWrite == 1 && memwb_reg->writeIndex != 0 && memwb_reg->writeIndex == idex_reg->Rs2)
+        fw_signals->ForwardB = 1;
+}
+
 // (4). MUX
 Signal MUX(Signal sel, Signal input_0, Signal input_1){
     if (sel == 0) { return input_0; } else { return input_1; }
@@ -368,4 +445,16 @@ Signal Add(Signal input_0, Signal input_1) {
 // (6). ShiftLeft1
 Signal ShiftLeft1(Signal input) {
     return input << 1;
+}
+
+// (7). 4-2 mux
+Signal MUX4_2(Signal sel, Signal input_0, Signal input_1, Signal input_2, Signal input_3){
+    if (sel == 0)
+        return input_0;
+    else if (sel == 1)
+        return input_1;
+    else if (sel == 2)
+        return input_2;
+    else if (sel == 3)
+        return input_3;
 }

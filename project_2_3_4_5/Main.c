@@ -58,12 +58,11 @@ int main(int argc, const char *argv[])
 
         /* Task Three - Simulation */
         while (core->tick(core)) {
-            printf("\nCurrent Clock Cycle: %ld", core->clk-1);
-            printf("\nValue of Register x10 = %ld", core->reg_file[10]);
-            printf("\nValue of Register x11 = %ld", core->reg_file[11]);
-            printf("\nValue of Register x12 = %ld", core->reg_file[12]);
-            printf("\nValue of Register x13 = %ld", core->reg_file[13]);
-            printf("\nValue of Register x14 = %ld \n", core->reg_file[14]);
+            printf("\nCurrent Clock Cycle: %lld", core->clk-1);
+            printf("\nValue of Register x2 = %lld", core->reg_file[2]);
+            printf("\nValue of Register x4 = %lld", core->reg_file[4]);
+            printf("\nValue of Register x8 = %lld", core->reg_file[8]);
+            printf("\nValue of Register x9 = %lld\n", core->reg_file[9]);
         }
     
         printf("\nSimulation is finished.\n");
